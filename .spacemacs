@@ -417,6 +417,7 @@ you should place your code here."
               (agenda "")
               (tags "@refile" ((org-agenda-overriding-header "To Refile")))
               (tags-todo "#habits" ((org-agenda-overriding-header "Habits")))
+              (tags-todo "+@personal+#projects" ((org-agenda-overriding-header "Projects")))
               (tags-todo "+@personal+#entertainment"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
