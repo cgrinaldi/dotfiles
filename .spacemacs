@@ -409,6 +409,7 @@ you should place your code here."
     (add-hook 'org-clock-out-hook 'bh/remove-empty-drawer-on-clock-out 'append)
 
     ;; Custom agenda views
+    (setq org-agenda-span 1) ;; by default show today only in agenda view
     (setq org-agenda-custom-commands
           '(
             ("h" "Agenda and Home-related tasks"
