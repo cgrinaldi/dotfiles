@@ -456,14 +456,18 @@ you should place your code here."
 
               (agenda "")
               (tags "@refile" ((org-agenda-overriding-header "To Refile")))
-              (tags-todo "+rebuys+#reporting"
+              (tags-todo "+rebuys+#mgmt"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
-                          (org-agenda-overriding-header "Rebuy Reporting")))
+                          (org-agenda-overriding-header "Rebuy Project Mgmt")))
               (tags-todo "+rebuys+#pipeline"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
                           (org-agenda-overriding-header "Rebuy Pipeline")))
+              (tags-todo "+rebuys+#reporting"
+                         ((org-agenda-skip-function
+                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
+                          (org-agenda-overriding-header "Rebuy Reporting")))
               (tags-todo "+rebuys+#research"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
