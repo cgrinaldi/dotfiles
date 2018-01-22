@@ -350,8 +350,37 @@ you should place your code here."
                             "~/Dropbox/org/journal.org"
                             "~/Dropbox/org/reading.org"
                             "~/Dropbox/org/inbox.org"))
-    (setq org-directory "~/Dropbox/org")
     (setq org-default-notes-file "~/Dropbox/org/inbox.org")
+
+    ;; mobileorg settings
+    (setq org-directory "~/Dropbox/org")
+    (setq org-mobile-inbox-for-pull "~/Dropbox/org/inbox.org")
+    (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
+    (setq org-mobile-files '("~/Dropbox/org"))
+
+    (defvar my-org-mobile-sync-timer nil)
+
+    (defvar my-org-mobile-sync-secs (* 60 5))
+
+    (defun my-org-mobile-sync-pull-and-push ()
+      (org-mobile-pull)
+      (org-mobile-push)
+      (when (fboundp 'sauron-add-event)
+        (sauron-add-event 'my 3 "Called org-mobile-pull and org-mobile-push")))
+
+    (defun my-org-mobile-sync-start ()
+      "Start automated `org-mobile-push'"
+      (interactive)
+      (setq my-org-mobile-sync-timer
+            (run-with-idle-timer my-org-mobile-sync-secs t
+                                 'my-org-mobile-sync-pull-and-push)))
+
+    (defun my-org-mobile-sync-stop ()
+      "Stop automated `org-mobile-push'"
+      (interactive)
+      (cancel-timer my-org-mobile-sync-timer))
+
+    (my-org-mobile-sync-start)
 
     ;; Change moving of Org subtrees
     (define-key org-mode-map (kbd "<s-up>") 'org-priority-up)
@@ -507,6 +536,9 @@ you should place your code here."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(org-agenda-files
+   (quote
+    ("/Users/crinaldi/Dropbox/org/ideas.org" "/Users/crinaldi/Dropbox/org/inbox.org" "/Users/crinaldi/Dropbox/org/journal.org" "/Users/crinaldi/Dropbox/org/notes.org" "/Users/crinaldi/Dropbox/org/personal.org" "/Users/crinaldi/Dropbox/org/reading.org" "/Users/crinaldi/Dropbox/org/reference.org" "/Users/crinaldi/Dropbox/org/stitchfix.org" "/Users/crinaldi/Dropbox/org/work.org")))
  '(package-selected-packages
    (quote
     (org-category-capture alert log4e gntp markdown-mode json-snatcher json-reformat multiple-cursors haml-mode gitignore-mode fringe-helper git-gutter+ git-gutter gh marshal logito pcache ht flyspell-correct pos-tip flycheck magit magit-popup git-commit ghub let-alist with-editor ctable ess julia-mode skewer-mode request-deferred websocket deferred js2-mode simple-httpd autothemer web-completion-data dash-functional tern company yasnippet anaconda-mode pythonic auto-complete evil-nerd-commenter zenburn-theme zen-and-art-theme yapfify yaml-mode xterm-color ws-butler winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe uuidgen use-package unfill underwater-theme ujelly-theme typit twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit sunny-day-theme sudoku sublime-themes subatomic256-theme subatomic-theme sql-indent spaceline spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle slim-mode shell-pop seti-theme scss-mode sass-mode reverse-theme restart-emacs ranger rainbow-delimiters railscasts-theme pyvenv pytest pyenv-mode py-isort purple-haze-theme pug-mode professional-theme popwin planet-theme pip-requirements phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pcre2el paradox pacmacs orgit organic-green-theme org-projectile org-present org-pomodoro org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme neotree naquadah-theme mwim mustang-theme multi-term move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow magit-gh-pulls madhat2r-theme macrostep lush-theme lorem-ipsum livid-mode live-py-mode linum-relative link-hint light-soap-theme less-css-mode json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme info+ indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt heroku-theme hemisu-theme help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot github-search github-clone github-browse-file gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gist gh-md gandalf-theme fuzzy flyspell-correct-helm flycheck-pos-tip flx-ido flatui-theme flatland-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-commentary evil-args evil-anzu eval-sexp-fu ess-smart-equals ess-R-data-view espresso-theme eshell-z eshell-prompt-extras esh-help erc-yt erc-view-log erc-terminal-notifier erc-social-graph erc-image erc-hl-nicks emmet-mode elisp-slime-nav ein dumb-jump dracula-theme django-theme diff-hl define-word darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme cython-mode cyberpunk-theme company-web company-tern company-statistics company-anaconda column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized coffee-mode clues-theme clean-aindent-mode cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell 2048-game))))
