@@ -366,10 +366,10 @@ you should place your code here."
     (setq org-default-notes-file "~/Dropbox/org/inbox.org")
 
     ;; mobileorg settings
-    (setq org-directory "~/Dropbox/org")
-    (setq org-mobile-inbox-for-pull "~/Dropbox/org/inbox.org")
-    (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
-    (setq org-mobile-files '("~/Dropbox/org"))
+    ;; (setq org-directory "~/Dropbox/org")
+    ;; (setq org-mobile-inbox-for-pull "~/Dropbox/org/inbox.org")
+    ;; (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
+    ;; (setq org-mobile-files '("~/Dropbox/org"))
 
     ;; Commented out in favor of using beorg mobile app
     ;; (defvar my-org-mobile-sync-timer nil)
@@ -409,6 +409,9 @@ you should place your code here."
 
     ;; Set default column view headings: Task Total-Time Time-Stamp
     (setq org-columns-default-format "%50ITEM(Task) %10CLOCKSUM %16TIMESTAMP_IA")
+
+    ;; Show done recurring tasks in org-agenda
+    (setq org-agenda-log-mode-items '(closed clock state))
 
     (setq org-todo-keywords
           (quote ((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
