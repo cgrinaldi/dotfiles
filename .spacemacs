@@ -460,9 +460,8 @@ you should place your code here."
              ((tags-todo "PRIORITY=\"A\""
                          ((org-agenda-overriding-header "High-priority unfinished tasks:")))
               (agenda "")
-              (tags "@refile" ((org-agenda-overriding-header "To Refile")))
-              (tags-todo "#habits" ((org-agenda-overriding-header "Habits")))
-              (tags-todo "+@personal+#projects" ((org-agenda-overriding-header "Projects")))
+              (tags "refile" ((org-agenda-overriding-header "To Refile")))
+              (tags-todo "reading" ((org-agenda-overriding-header "My Reading List")))
               (tags-todo "+@personal+#entertainment"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
@@ -479,10 +478,26 @@ you should place your code here."
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
                           (org-agenda-overriding-header "Domestic")))
+              (tags-todo "+@personal+#house"
+                         ((org-agenda-skip-function
+                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
+                          (org-agenda-overriding-header "Buying a Home")))
+              (tags-todo "+@personal+#meditation"
+                         ((org-agenda-skip-function
+                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
+                          (org-agenda-overriding-header "Meditation")))
               (tags-todo "+@personal+#personal"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
                           (org-agenda-overriding-header "Personal")))
+              (tags-todo "+@personal+#professional"
+                         ((org-agenda-skip-function
+                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
+                          (org-agenda-overriding-header "Professional")))
+              (tags-todo "+@personal+#shopping"
+                         ((org-agenda-skip-function
+                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
+                          (org-agenda-overriding-header "Shopping")))
               (tags-todo "+@personal+#social"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
@@ -491,15 +506,18 @@ you should place your code here."
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
                           (org-agenda-overriding-header "Emacs")))
-              (tags-todo "reading" ((org-agenda-overriding-header "My Reading List"))))
-             ((org-agenda-tag-filter-preset '("-@work"))))
+              (tags-todo "+@personal+#travel"
+                         ((org-agenda-skip-function
+                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
+                          (org-agenda-overriding-header "Travel")))
+              (tags-todo "+#projects" ((org-agenda-overriding-header "Projects"))))
+             ((org-agenda-files '("~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org"))))
 
             ("w" "Agenda and Work-related tasks"
-             ((tags-todo "PRIORITY=\"A\""
+              ((tags-todo "PRIORITY=\"A\""
                          ((org-agenda-overriding-header "High-priority unfinished tasks:")))
-
               (agenda "")
-              (tags "@refile" ((org-agenda-overriding-header "To Refile")))
+              (tags "refile" ((org-agenda-overriding-header "To Refile")))
               (tags-todo "#rebuys2"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
@@ -531,15 +549,26 @@ you should place your code here."
               (tags-todo "#misc"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "Miscellaneous")))))
+                          (org-agenda-overriding-header "Miscellaneous"))))
+              ((org-agenda-files '("~/Dropbox/org/work.org" "~/Dropbox/org/inbox.org"))))
 
             ("e" "Simplified work view"
              ((tags-todo "PRIORITY=\"A\""
                          ((org-agenda-overriding-header "High-priority unfinished tasks:")))
 
               (agenda "")
-              (tags "@refile" ((org-agenda-overriding-header "To Refile")))
-              (tags-todo "@work" ((org-agenda-overriding-header "TODOs")))))
+              (tags "refile" ((org-agenda-overriding-header "To Refile")))
+              (tags-todo "@work" ((org-agenda-overriding-header "TODOs"))))
+             ((org-agenda-files '("~/Dropbox/org/work.org" "~/Dropbox/org/inbox.org"))))
+
+            ("j" "Simplified home view"
+             ((tags-todo "PRIORITY=\"A\""
+                         ((org-agenda-overriding-header "High-priority unfinished tasks:")))
+              (agenda "")
+              (tags "refile" ((org-agenda-overriding-header "To Refile")))
+              (tags-todo "reading" ((org-agenda-overriding-header "My Reading List")))
+              (tags-todo "@personal" ((org-agenda-overriding-header "TODOs"))))
+             ((org-agenda-files '("~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org"))))
 
             ("W" todo "WAITING")
 
