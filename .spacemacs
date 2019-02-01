@@ -31,6 +31,7 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
+     csv
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
@@ -46,13 +47,18 @@ values."
      games
      git
      github
-     python
+     (python :variables
+             python-enable-yapf-format-on-save t
+             python-test-runner 'pytest)
      ranger
      react
+     restclient
      themes-megapack
      markdown
      org
+     org-noter-cr
      ipython-notebook
+     pdf-tools
      (shell :variables
             shell-default-shell 'term
             shell-default-height 35
@@ -145,8 +151,8 @@ values."
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
-   dotspacemacs-default-font '("Source Code Pro"
-                               :size 13
+   dotspacemacs-default-font '("Monaco"
+                               :size 16
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
@@ -330,13 +336,36 @@ you should place your code here."
   (setq find-file-visit-truename t)
 
   ;; Change default window splitting to always go right
-  (setq split-height-threshold nil)
-  (setq split-width-threshold 0)
+  (setq split-height-threshold 500)
+  (setq split-width-threshold 500)
+
+  ;; Turn off JavaScript checking for ;
+  (setq js2-strict-missing-semi-warning nil)
+
+  ;; React configs
+  (setq-default
+   ;; js2-mode
+   js2-basic-offset 2
+   ;; web-mode
+   css-indent-offset 2
+   web-mode-markup-indent-offset 2
+   web-mode-css-indent-offset 2
+   web-mode-code-indent-offset 2
+   web-mode-attr-indent-offset 2)
+
+  (with-eval-after-load 'web-mode
+    (add-to-list 'web-mode-indentation-params '("lineup-args" . nil))
+    (add-to-list 'web-mode-indentation-params '("lineup-concats" . nil))
+    (add-to-list 'web-mode-indentation-params '("lineup-calls" . nil)))
 
   ;; Turn off auto <- in R mode
   (add-hook 'ess-mode-hook
             (lambda ()
               (ess-toggle-underscore nil)))
+
+  ;; Adding key binding for interleaving in PDF View
+  (spacemacs/set-leader-keys-for-major-mode 'pdf-view-mode "o" 'org-noter)
+  (spacemacs/set-leader-keys-for-major-mode 'org-mode "o" 'org-noter)
 
   ;; Fix issue with weird indentation of # in R files
   (setq ess-indent-with-fancy-comments nil)
@@ -353,7 +382,13 @@ you should place your code here."
              (list "-a" "firefox" url))))
   (setq flymd-browser-open-function 'my-flymd-browser-function)
 
-    ;; Org Mode
+  ;; Org Mode
+
+  ;; Start with org-indent-mode
+  (use-package org
+    :config
+    (setq org-startup-indented t))
+
   (with-eval-after-load 'org
     ;; Org configuration goes here
     (setq spaceline-org-clock-p t)
@@ -361,40 +396,11 @@ you should place your code here."
     (setq org-agenda-files '("~/Dropbox/org/work.org"
                             "~/Dropbox/org/personal.org"
                             "~/Dropbox/org/journal.org"
+                            "~/Dropbox/org/ideas.org"
                             "~/Dropbox/org/reading.org"
+                            "~/Dropbox/org/datasci.org"
                             "~/Dropbox/org/inbox.org"))
     (setq org-default-notes-file "~/Dropbox/org/inbox.org")
-
-    ;; mobileorg settings
-    ;; (setq org-directory "~/Dropbox/org")
-    ;; (setq org-mobile-inbox-for-pull "~/Dropbox/org/inbox.org")
-    ;; (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
-    ;; (setq org-mobile-files '("~/Dropbox/org"))
-
-    ;; Commented out in favor of using beorg mobile app
-    ;; (defvar my-org-mobile-sync-timer nil)
-
-    ;; (defvar my-org-mobile-sync-secs (* 60 5))
-
-    ;; (defun my-org-mobile-sync-pull-and-push ()
-    ;;   (org-mobile-pull)
-    ;;   (org-mobile-push)
-    ;;   (when (fboundp 'sauron-add-event)
-    ;;     (sauron-add-event 'my 3 "Called org-mobile-pull and org-mobile-push")))
-
-    ;; (defun my-org-mobile-sync-start ()
-    ;;   "Start automated `org-mobile-push'"
-    ;;   (interactive)
-    ;;   (setq my-org-mobile-sync-timer
-    ;;         (run-with-idle-timer my-org-mobile-sync-secs t
-    ;;                              'my-org-mobile-sync-pull-and-push)))
-
-    ;; (defun my-org-mobile-sync-stop ()
-    ;;   "Stop automated `org-mobile-push'"
-    ;;   (interactive)
-    ;;   (cancel-timer my-org-mobile-sync-timer))
-
-    ;; (my-org-mobile-sync-start)
 
     ;; Change moving of Org subtrees
     (define-key org-mode-map (kbd "<s-up>") 'org-priority-up)
@@ -497,6 +503,10 @@ you should place your code here."
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
                           (org-agenda-overriding-header "Professional")))
+              (tags-todo "+@personal+#relationship"
+                         ((org-agenda-skip-function
+                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
+                          (org-agenda-overriding-header "Relationship")))
               (tags-todo "+@personal+#shopping"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
@@ -519,28 +529,33 @@ you should place your code here."
             ("w" "Agenda and Work-related tasks"
               ((tags-todo "PRIORITY=\"A\""
                          ((org-agenda-overriding-header "High-priority unfinished tasks:")))
+              (todo "WAITING")
               (agenda "")
               (tags "refile" ((org-agenda-overriding-header "To Refile")))
-              (tags-todo "#rebuys2"
+              (tags-todo "#airflow"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "Rebuys 2.0")))
-              (tags-todo "+rebuys+#pipeline"
+                          (org-agenda-overriding-header "Airflow")))
+              (tags-todo "#gdpr"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "Rebuy Pipeline")))
-              (tags-todo "+rebuys+#reporting"
+                          (org-agenda-overriding-header "GDPR")))
+              (tags-todo "#orbiter"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "Rebuy Reporting")))
-              (tags-todo "+rebuys+#research"
+                          (org-agenda-overriding-header "Orbiter")))
+              (tags-todo "#shuri"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "Rebuy Research")))
-              (tags-todo "+rebuys+#tracker"
+                          (org-agenda-overriding-header "Shuri")))
+              (tags-todo "#vibranium"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "Rebuy Tracker")))
+                          (org-agenda-overriding-header "Vibranium")))
+              (tags-todo "#stitchfix"
+                         ((org-agenda-skip-function
+                           '(org-agenda-skip-entry-if 'scheduled))
+                          (org-agenda-overriding-header "Stitch Fix")))
               (tags-todo "#profdev"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
@@ -558,7 +573,7 @@ you should place your code here."
             ("e" "Simplified work view"
              ((tags-todo "PRIORITY=\"A\""
                          ((org-agenda-overriding-header "High-priority unfinished tasks:")))
-
+              (todo "WAITING")
               (agenda "")
               (tags "refile" ((org-agenda-overriding-header "To Refile")))
               (tags-todo "@work" ((org-agenda-overriding-header "TODOs"))))
@@ -597,7 +612,7 @@ you should place your code here."
  ;; If there is more than one, they won't work right.
  '(org-agenda-files
    (quote
-    ("/Users/crinaldi/Dropbox/org/.#notes.org" "/Users/crinaldi/Dropbox/org/ideas.org" "/Users/crinaldi/Dropbox/org/inbox.org" "/Users/crinaldi/Dropbox/org/journal.org" "/Users/crinaldi/Dropbox/org/notes.org" "/Users/crinaldi/Dropbox/org/personal.org" "/Users/crinaldi/Dropbox/org/reading.org" "/Users/crinaldi/Dropbox/org/reference.org" "/Users/crinaldi/Dropbox/org/review.org" "/Users/crinaldi/Dropbox/org/stitchfix.org" "/Users/crinaldi/Dropbox/org/work.org")))
+    ("/Users/crinaldi/Dropbox/org/datasci.org" "/Users/crinaldi/Dropbox/org/ideas.org" "/Users/crinaldi/Dropbox/org/inbox.org" "/Users/crinaldi/Dropbox/org/journal.org" "/Users/crinaldi/Dropbox/org/notes.org" "/Users/crinaldi/Dropbox/org/personal.org" "/Users/crinaldi/Dropbox/org/reading.org" "/Users/crinaldi/Dropbox/org/reference.org" "/Users/crinaldi/Dropbox/org/review.org" "/Users/crinaldi/Dropbox/org/stitchfix.org" "/Users/crinaldi/Dropbox/org/work.org")))
  '(org-capture-templates
    (quote
     (("t" "Todo" entry
@@ -624,7 +639,7 @@ you should place your code here."
 DEADLINE: %t"))) t)
  '(package-selected-packages
    (quote
-    (flymd omnisharp shut-up csharp-mode org-category-capture alert log4e gntp markdown-mode json-snatcher json-reformat multiple-cursors haml-mode gitignore-mode fringe-helper git-gutter+ git-gutter gh marshal logito pcache ht flyspell-correct pos-tip flycheck magit magit-popup git-commit ghub let-alist with-editor ctable ess julia-mode skewer-mode request-deferred websocket deferred js2-mode simple-httpd autothemer web-completion-data dash-functional tern company yasnippet anaconda-mode pythonic auto-complete evil-nerd-commenter zenburn-theme zen-and-art-theme yapfify yaml-mode xterm-color ws-butler winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe uuidgen use-package unfill underwater-theme ujelly-theme typit twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit sunny-day-theme sudoku sublime-themes subatomic256-theme subatomic-theme sql-indent spaceline spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle slim-mode shell-pop seti-theme scss-mode sass-mode reverse-theme restart-emacs ranger rainbow-delimiters railscasts-theme pyvenv pytest pyenv-mode py-isort purple-haze-theme pug-mode professional-theme popwin planet-theme pip-requirements phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pcre2el paradox pacmacs orgit organic-green-theme org-projectile org-present org-pomodoro org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme neotree naquadah-theme mwim mustang-theme multi-term move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow magit-gh-pulls madhat2r-theme macrostep lush-theme lorem-ipsum livid-mode live-py-mode linum-relative link-hint light-soap-theme less-css-mode json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme info+ indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt heroku-theme hemisu-theme help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot github-search github-clone github-browse-file gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gist gh-md gandalf-theme fuzzy flyspell-correct-helm flycheck-pos-tip flx-ido flatui-theme flatland-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-commentary evil-args evil-anzu eval-sexp-fu ess-smart-equals ess-R-data-view espresso-theme eshell-z eshell-prompt-extras esh-help erc-yt erc-view-log erc-terminal-notifier erc-social-graph erc-image erc-hl-nicks emmet-mode elisp-slime-nav ein dumb-jump dracula-theme django-theme diff-hl define-word darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme cython-mode cyberpunk-theme company-web company-tern company-statistics company-anaconda column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized coffee-mode clues-theme clean-aindent-mode cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell 2048-game))))
+    (restclient-helm ob-restclient ob-http company-restclient restclient know-your-http-well csv-mode org-noter interleave pdf-tools tablist flymd omnisharp shut-up csharp-mode org-category-capture alert log4e gntp markdown-mode json-snatcher json-reformat multiple-cursors haml-mode gitignore-mode fringe-helper git-gutter+ git-gutter gh marshal logito pcache ht flyspell-correct pos-tip flycheck magit magit-popup git-commit ghub let-alist with-editor ctable ess julia-mode skewer-mode request-deferred websocket deferred js2-mode simple-httpd autothemer web-completion-data dash-functional tern company yasnippet anaconda-mode pythonic auto-complete evil-nerd-commenter zenburn-theme zen-and-art-theme yapfify yaml-mode xterm-color ws-butler winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe uuidgen use-package unfill underwater-theme ujelly-theme typit twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit sunny-day-theme sudoku sublime-themes subatomic256-theme subatomic-theme sql-indent spaceline spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle slim-mode shell-pop seti-theme scss-mode sass-mode reverse-theme restart-emacs ranger rainbow-delimiters railscasts-theme pyvenv pytest pyenv-mode py-isort purple-haze-theme pug-mode professional-theme popwin planet-theme pip-requirements phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pcre2el paradox pacmacs orgit organic-green-theme org-projectile org-present org-pomodoro org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme neotree naquadah-theme mwim mustang-theme multi-term move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow magit-gh-pulls madhat2r-theme macrostep lush-theme lorem-ipsum livid-mode live-py-mode linum-relative link-hint light-soap-theme less-css-mode json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme info+ indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt heroku-theme hemisu-theme help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot github-search github-clone github-browse-file gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gist gh-md gandalf-theme fuzzy flyspell-correct-helm flycheck-pos-tip flx-ido flatui-theme flatland-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-commentary evil-args evil-anzu eval-sexp-fu ess-smart-equals ess-R-data-view espresso-theme eshell-z eshell-prompt-extras esh-help erc-yt erc-view-log erc-terminal-notifier erc-social-graph erc-image erc-hl-nicks emmet-mode elisp-slime-nav ein dumb-jump dracula-theme django-theme diff-hl define-word darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme cython-mode cyberpunk-theme company-web company-tern company-statistics company-anaconda column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized coffee-mode clues-theme clean-aindent-mode cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell 2048-game))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
