@@ -450,6 +450,7 @@ you should place your code here."
                             "~/Dropbox/org/personal.org"
                             "~/Dropbox/org/journal.org"
                             "~/Dropbox/org/ideas.org"
+                            "~/Dropbox/org/someday.org"
                             "~/Dropbox/org/reading.org"
                             "~/Dropbox/org/datasci.org"
                             "~/Dropbox/org/inbox.org"))
@@ -569,14 +570,14 @@ you should place your code here."
               (todo "WAITING")
               (agenda "")
               (tags "refile" ((org-agenda-overriding-header "To Refile")))
-              (tags-todo "#profdev"
+              (tags-todo "#reading"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "Professional Development")))
-              (tags-todo "#misc"
+                          (org-agenda-overriding-header "Reading")))
+              (tags-todo "@work"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "Miscellaneous"))))
+                          (org-agenda-overriding-header "All TODOs"))))
               ((org-agenda-files '("~/Dropbox/org/work.org" "~/Dropbox/org/inbox.org"))))
 
             ("e" "Simplified work view"
