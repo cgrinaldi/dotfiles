@@ -381,6 +381,60 @@ you should place your code here."
              (list "-a" "firefox" url))))
   (setq flymd-browser-open-function 'my-flymd-browser-function)
 
+  ;; SQL
+  ;;  SQL stuff This is mostly copy pasted from
+  ;;  https://truongtx.me/2014/08/23/setup-emacs-as-an-sql-database-client
+  ;;  You may not need most of this.  You probably don't need psql, you
+  ;;  don't need the redshift stuff or anything else other than
+  ;;  `sane-presto` and the presto stuf.
+  (require 'sql)
+
+  (add-hook 'sql-interactive-mode-hook
+      (lambda ()
+        (toggle-truncate-lines t)))
+
+  (setq sql-postgres-program "/usr/local/bin/psql")
+  (setq sql-send-terminator t)
+
+  ;; Get this from https://github.com/stitchfix/booga/blob/master/gsn/bin/sane-presto
+  (setq sql-presto-program "sane-presto"
+        sql-presto-login-params '((user :default "crinaldi")
+          (database :default "")))
+
+
+  (add-to-list 'sql-product-alist
+        '(presto
+          :name "Presto"
+          :free-software t
+          :font-lock sql-mode-postgres-font-lock-keywords
+          :sqli-program sql-presto-program
+          :sqli-login sql-presto-login-params
+          :sqli-comint-func sql-comint-presto
+          :prompt-regexp "^\\w*[#>] "
+          :prompt-length 8
+          :prompt-cont-regexp "^\\w*[-(]*[#>] "
+          :input-filter sql-remove-tabs-filter
+          :terminator ("\\(^\\s-*\\\\g$\\|;\\)" . "\\g")))
+
+  (add-to-list 'sql-connection-alist
+        '(presto
+          (sql-product 'presto)
+          (sql-user "crinaldi")
+          (sql-port 8889)
+          (sql-database "dw")))
+
+  (defun sql-presto ()
+    "Connect to presto."
+    (interactive)
+    (let ((sql-product 'presto))
+      (sql-connect 'presto)))
+
+
+  (defun sql-comint-presto (product options)
+    (let ((sql-login-delay 0.9))
+      (sql-comint product options)))
+
+
   ;; Org Mode
 
   ;; Start with org-indent-mode
@@ -470,10 +524,6 @@ you should place your code here."
               (agenda "")
               (tags "refile" ((org-agenda-overriding-header "To Refile")))
               (tags-todo "reading" ((org-agenda-overriding-header "My Reading List")))
-              (tags-todo "+@personal+#entertainment"
-                         ((org-agenda-skip-function
-                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
-                          (org-agenda-overriding-header "Entertainment")))
               (tags-todo "+@personal+#finances"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
@@ -486,10 +536,6 @@ you should place your code here."
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
                           (org-agenda-overriding-header "Domestic")))
-              (tags-todo "+@personal+#house"
-                         ((org-agenda-skip-function
-                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
-                          (org-agenda-overriding-header "Buying a Home")))
               (tags-todo "+@personal+#meditation"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
@@ -502,10 +548,6 @@ you should place your code here."
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
                           (org-agenda-overriding-header "Professional")))
-              (tags-todo "+@personal+#relationship"
-                         ((org-agenda-skip-function
-                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
-                          (org-agenda-overriding-header "Relationship")))
               (tags-todo "+@personal+#shopping"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
@@ -514,10 +556,6 @@ you should place your code here."
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
                           (org-agenda-overriding-header "Social")))
-              (tags-todo "+@personal+#emacs"
-                         ((org-agenda-skip-function
-                           '(org-agenda-skip-entry-if 'deadline 'scheduled))
-                          (org-agenda-overriding-header "Emacs")))
               (tags-todo "+@personal+#travel"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'deadline 'scheduled))
