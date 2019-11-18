@@ -31,7 +31,6 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
-     nginx
      csv
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
@@ -342,9 +341,6 @@ you should place your code here."
   ;; Turn off JavaScript checking for ;
   (setq js2-strict-missing-semi-warning nil)
 
-  ;; Set Projectile indexing explicitly
-  (setq projectile-indexing-method 'alien)
-
   ;; React configs
   (setq-default
    ;; js2-mode
@@ -454,7 +450,6 @@ you should place your code here."
                             "~/Dropbox/org/personal.org"
                             "~/Dropbox/org/journal.org"
                             "~/Dropbox/org/ideas.org"
-                            "~/Dropbox/org/someday.org"
                             "~/Dropbox/org/reading.org"
                             "~/Dropbox/org/datasci.org"
                             "~/Dropbox/org/inbox.org"))
@@ -521,267 +516,9 @@ you should place your code here."
 
     ;; Custom agenda views
     (setq org-agenda-span 1) ;; by default show today only in agenda view
-    (defvar bh/hide-scheduled-and-waiting-next-tasks t)
-
-    ;; Helper functions
-    (defun bh/find-project-task ()
-      "Move point to the parent (project) task if any"
-      (save-restriction
-        (widen)
-        (let ((parent-task (save-excursion (org-back-to-heading 'invisible-ok) (point))))
-          (while (org-up-heading-safe)
-            (when (member (nth 2 (org-heading-components)) org-todo-keywords-1)
-              (setq parent-task (point))))
-          (goto-char parent-task)
-          parent-task)))
-    (defun bh/is-project-p ()
-        "Any task with a todo keyword subtask"
-        (save-restriction
-          (widen)
-          (let ((has-subtask)
-                (subtree-end (save-excursion (org-end-of-subtree t)))
-                (is-a-task (member (nth 2 (org-heading-components)) org-todo-keywords-1)))
-            (save-excursion
-              (forward-line 1)
-              (while (and (not has-subtask)
-                          (< (point) subtree-end)
-                          (re-search-forward "^\*+ " subtree-end t))
-                (when (member (org-get-todo-state) org-todo-keywords-1)
-                  (setq has-subtask t))))
-            (and is-a-task has-subtask))))
-
-      (defun bh/is-project-subtree-p ()
-        "Any task with a todo keyword that is in a project subtree.
-      Callers of this function already widen the buffer view."
-        (let ((task (save-excursion (org-back-to-heading 'invisible-ok)
-                                    (point))))
-          (save-excursion
-            (bh/find-project-task)
-            (if (equal (point) task)
-                nil
-              t))))
-
-      (defun bh/is-task-p ()
-        "Any task with a todo keyword and no subtask"
-        (save-restriction
-          (widen)
-          (let ((has-subtask)
-                (subtree-end (save-excursion (org-end-of-subtree t)))
-                (is-a-task (member (nth 2 (org-heading-components)) org-todo-keywords-1)))
-            (save-excursion
-              (forward-line 1)
-              (while (and (not has-subtask)
-                          (< (point) subtree-end)
-                          (re-search-forward "^\*+ " subtree-end t))
-                (when (member (org-get-todo-state) org-todo-keywords-1)
-                  (setq has-subtask t))))
-            (and is-a-task (not has-subtask)))))
-
-      (defun bh/is-subproject-p ()
-        "Any task which is a subtask of another project"
-        (let ((is-subproject)
-              (is-a-task (member (nth 2 (org-heading-components)) org-todo-keywords-1)))
-          (save-excursion
-            (while (and (not is-subproject) (org-up-heading-safe))
-              (when (member (nth 2 (org-heading-components)) org-todo-keywords-1)
-                (setq is-subproject t))))
-          (and is-a-task is-subproject)))
-
-      (defun bh/list-sublevels-for-projects-indented ()
-        "Set org-tags-match-list-sublevels so when restricted to a subtree we list all subtasks.
-        This is normally used by skipping functions where this variable is already local to the agenda."
-        (if (marker-buffer org-agenda-restrict-begin)
-            (setq org-tags-match-list-sublevels 'indented)
-          (setq org-tags-match-list-sublevels nil))
-        nil)
-
-      (defun bh/list-sublevels-for-projects ()
-        "Set org-tags-match-list-sublevels so when restricted to a subtree we list all subtasks.
-        This is normally used by skipping functions where this variable is already local to the agenda."
-        (if (marker-buffer org-agenda-restrict-begin)
-            (setq org-tags-match-list-sublevels t)
-          (setq org-tags-match-list-sublevels nil))
-        nil)
-
-      (defvar bh/hide-scheduled-and-waiting-next-tasks t)
-
-      (defun bh/toggle-next-task-display ()
-        (interactive)
-        (setq bh/hide-scheduled-and-waiting-next-tasks (not bh/hide-scheduled-and-waiting-next-tasks))
-        (when  (equal major-mode 'org-agenda-mode)
-          (org-agenda-redo))
-        (message "%s WAITING and SCHEDULED NEXT Tasks" (if bh/hide-scheduled-and-waiting-next-tasks "Hide" "Show")))
-
-      (defun bh/skip-stuck-projects ()
-        "Skip trees that are not stuck projects"
-        (save-restriction
-          (widen)
-          (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
-            (if (bh/is-project-p)
-                (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
-                      (has-next ))
-                  (save-excursion
-                    (forward-line 1)
-                    (while (and (not has-next) (< (point) subtree-end) (re-search-forward "^\\*+ NEXT " subtree-end t))
-                      (unless (member "WAITING" (org-get-tags-at))
-                        (setq has-next t))))
-                  (if has-next
-                      nil
-                    next-headline)) ; a stuck project, has subtasks but no next task
-              nil))))
-
-      (defun bh/skip-non-stuck-projects ()
-        "Skip trees that are not stuck projects"
-        ;; (bh/list-sublevels-for-projects-indented)
-        (save-restriction
-          (widen)
-          (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
-            (if (bh/is-project-p)
-                (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
-                      (has-next ))
-                  (save-excursion
-                    (forward-line 1)
-                    (while (and (not has-next) (< (point) subtree-end) (re-search-forward "^\\*+ NEXT " subtree-end t))
-                      (unless (member "WAITING" (org-get-tags-at))
-                        (setq has-next t))))
-                  (if has-next
-                      next-headline
-                    nil)) ; a stuck project, has subtasks but no next task
-              next-headline))))
-
-      (defun bh/skip-non-projects ()
-        "Skip trees that are not projects"
-        ;; (bh/list-sublevels-for-projects-indented)
-        (if (save-excursion (bh/skip-non-stuck-projects))
-            (save-restriction
-              (widen)
-              (let ((subtree-end (save-excursion (org-end-of-subtree t))))
-                (cond
-                ((bh/is-project-p)
-                  nil)
-                ((and (bh/is-project-subtree-p) (not (bh/is-task-p)))
-                  nil)
-                (t
-                  subtree-end))))
-          (save-excursion (org-end-of-subtree t))))
-
-      (defun bh/skip-non-tasks ()
-        "Show non-project tasks.
-      Skip project and sub-project tasks, habits, and project related tasks."
-        (save-restriction
-          (widen)
-          (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
-            (cond
-            ((bh/is-task-p)
-              nil)
-            (t
-              next-headline)))))
-
-      (defun bh/skip-project-trees-and-habits ()
-        "Skip trees that are projects"
-        (save-restriction
-          (widen)
-          (let ((subtree-end (save-excursion (org-end-of-subtree t))))
-            (cond
-            ((bh/is-project-p)
-              subtree-end)
-            (t
-              nil)))))
-
-      (defun bh/skip-projects-and-habits-and-single-tasks ()
-        "Skip trees that are projects, tasks that are habits, single non-project tasks"
-        (save-restriction
-          (widen)
-          (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
-            (cond
-            ((and bh/hide-scheduled-and-waiting-next-tasks
-                  (member "WAITING" (org-get-tags-at)))
-              next-headline)
-            ((bh/is-project-p)
-              next-headline)
-            ((and (bh/is-task-p) (not (bh/is-project-subtree-p)))
-              next-headline)
-            (t
-              nil)))))
-
-      (defun bh/skip-project-tasks-maybe ()
-        "Show tasks related to the current restriction.
-      When restricted to a project, skip project and sub project tasks, habits, NEXT tasks, and loose tasks.
-      When not restricted, skip project and sub-project tasks, habits, and project related tasks."
-        (save-restriction
-          (widen)
-          (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
-                (next-headline (save-excursion (or (outline-next-heading) (point-max))))
-                (limit-to-project (marker-buffer org-agenda-restrict-begin)))
-            (cond
-            ((bh/is-project-p)
-              next-headline)
-            ((and (not limit-to-project)
-                  (bh/is-project-subtree-p))
-              subtree-end)
-            ((and limit-to-project
-                  (bh/is-project-subtree-p)
-                  (member (org-get-todo-state) (list "NEXT")))
-              subtree-end)
-            (t
-              nil)))))
-
-      (defun bh/skip-project-tasks ()
-        "Show non-project tasks.
-      Skip project and sub-project tasks, habits, and project related tasks."
-        (save-restriction
-          (widen)
-          (let* ((subtree-end (save-excursion (org-end-of-subtree t))))
-            (cond
-            ((bh/is-project-p)
-              subtree-end)
-            ((bh/is-project-subtree-p)
-              subtree-end)
-            (t
-              nil)))))
-
-      (defun bh/skip-non-project-tasks ()
-        "Show project tasks.
-      Skip project and sub-project tasks, habits, and loose non-project tasks."
-        (save-restriction
-          (widen)
-          (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
-                (next-headline (save-excursion (or (outline-next-heading) (point-max)))))
-            (cond
-            ((bh/is-project-p)
-              next-headline)
-            ((and (bh/is-project-subtree-p)
-                  (member (org-get-todo-state) (list "NEXT")))
-              subtree-end)
-            ((not (bh/is-project-subtree-p))
-              subtree-end)
-            (t
-              nil)))))
-
-      (defun bh/skip-projects-and-habits ()
-        "Skip trees that are projects and tasks that are habits"
-        (save-restriction
-          (widen)
-          (let ((subtree-end (save-excursion (org-end-of-subtree t))))
-            (cond
-            ((bh/is-project-p)
-              subtree-end)
-            (t
-              nil)))))
-
-      (defun bh/skip-non-subprojects ()
-        "Skip trees that are not projects"
-        (let ((next-headline (save-excursion (outline-next-heading))))
-          (if (bh/is-subproject-p)
-              nil
-            next-headline)))
-
-    ;; Custom agenda command definitions
     (setq org-agenda-custom-commands
-      (quote (("N" "Notes" tags "NOTE"
-               ((org-agenda-overriding-header "Notes")
-                (org-tags-match-list-sublevels t)))
-              ("h" "Agenda and Home-related tasks"
+          '(
+            ("h" "Agenda and Home-related tasks"
              ((tags-todo "PRIORITY=\"A\""
                          ((org-agenda-overriding-header "High-priority unfinished tasks:")))
               (agenda "")
@@ -832,14 +569,14 @@ you should place your code here."
               (todo "WAITING")
               (agenda "")
               (tags "refile" ((org-agenda-overriding-header "To Refile")))
-              (tags-todo "#reading"
+              (tags-todo "#profdev"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "Reading")))
-              (tags-todo "@work"
+                          (org-agenda-overriding-header "Professional Development")))
+              (tags-todo "#misc"
                          ((org-agenda-skip-function
                            '(org-agenda-skip-entry-if 'scheduled))
-                          (org-agenda-overriding-header "All TODOs"))))
+                          (org-agenda-overriding-header "Miscellaneous"))))
               ((org-agenda-files '("~/Dropbox/org/work.org" "~/Dropbox/org/inbox.org"))))
 
             ("e" "Simplified work view"
@@ -870,72 +607,8 @@ you should place your code here."
                      (org-agenda-overriding-header "High-priority unfinished tasks:")))
               (agenda "")
               (alltodo "")))
-
-              (" " "Agenda"
-               ((agenda "" nil)
-                (tags "REFILE"
-                      ((org-agenda-overriding-header "Tasks to Refile")
-                       (org-tags-match-list-sublevels nil)))
-                (tags-todo "-CANCELLED/!"
-                           ((org-agenda-overriding-header "Stuck Projects")
-                            (org-agenda-skip-function 'bh/skip-non-stuck-projects)
-                            (org-agenda-sorting-strategy
-                             '(category-keep))))
-                (tags-todo "-HOLD-CANCELLED/!"
-                           ((org-agenda-overriding-header "Projects")
-                            (org-agenda-skip-function 'bh/skip-non-projects)
-                            (org-tags-match-list-sublevels 'indented)
-                            (org-agenda-sorting-strategy
-                             '(category-keep))))
-                (tags-todo "-CANCELLED/!NEXT"
-                           ((org-agenda-overriding-header (concat "Project Next Tasks"
-                                                                  (if bh/hide-scheduled-and-waiting-next-tasks
-                                                                      ""
-                                                                    " (including WAITING and SCHEDULED tasks)")))
-                            (org-agenda-skip-function 'bh/skip-projects-and-habits-and-single-tasks)
-                            (org-tags-match-list-sublevels t)
-                            (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-todo-ignore-with-date bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-sorting-strategy
-                             '(todo-state-down effort-up category-keep))))
-                (tags-todo "-REFILE-CANCELLED-WAITING-HOLD/!"
-                           ((org-agenda-overriding-header (concat "Project Subtasks"
-                                                                  (if bh/hide-scheduled-and-waiting-next-tasks
-                                                                      ""
-                                                                    " (including WAITING and SCHEDULED tasks)")))
-                            (org-agenda-skip-function 'bh/skip-non-project-tasks)
-                            (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-todo-ignore-with-date bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-sorting-strategy
-                             '(category-keep))))
-                (tags-todo "-REFILE-CANCELLED-WAITING-HOLD/!"
-                           ((org-agenda-overriding-header (concat "Standalone Tasks"
-                                                                  (if bh/hide-scheduled-and-waiting-next-tasks
-                                                                      ""
-                                                                    " (including WAITING and SCHEDULED tasks)")))
-                            (org-agenda-skip-function 'bh/skip-project-tasks)
-                            (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-todo-ignore-with-date bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-sorting-strategy
-                             '(category-keep))))
-                (tags-todo "-CANCELLED+WAITING|HOLD/!"
-                           ((org-agenda-overriding-header (concat "Waiting and Postponed Tasks"
-                                                                  (if bh/hide-scheduled-and-waiting-next-tasks
-                                                                      ""
-                                                                    " (including WAITING and SCHEDULED tasks)")))
-                            (org-agenda-skip-function 'bh/skip-non-tasks)
-                            (org-tags-match-list-sublevels nil)
-                            (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
-                            (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)))
-                (tags "-REFILE/"
-                      ((org-agenda-overriding-header "Tasks to Archive")
-                       (org-agenda-skip-function 'bh/skip-non-archivable-tasks)
-                       (org-tags-match-list-sublevels nil))))
-               ((org-agenda-files '("~/Dropbox/org/work.org" "~/Dropbox/org/inbox.org"))))
-              )))
+           )
+    )
   )
 )
 
@@ -979,7 +652,7 @@ you should place your code here."
 DEADLINE: %t"))) t)
  '(package-selected-packages
    (quote
-    (nginx-mode org-mime doom-themes restclient-helm ob-restclient ob-http company-restclient restclient know-your-http-well csv-mode org-noter interleave pdf-tools tablist flymd omnisharp shut-up csharp-mode org-category-capture alert log4e gntp markdown-mode json-snatcher json-reformat multiple-cursors haml-mode gitignore-mode fringe-helper git-gutter+ git-gutter gh marshal logito pcache ht flyspell-correct pos-tip flycheck magit magit-popup git-commit ghub let-alist with-editor ctable ess julia-mode skewer-mode request-deferred websocket deferred js2-mode simple-httpd autothemer web-completion-data dash-functional tern company yasnippet anaconda-mode pythonic auto-complete evil-nerd-commenter zenburn-theme zen-and-art-theme yapfify yaml-mode xterm-color ws-butler winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe uuidgen use-package unfill underwater-theme ujelly-theme typit twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit sunny-day-theme sudoku sublime-themes subatomic256-theme subatomic-theme sql-indent spaceline spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle slim-mode shell-pop seti-theme scss-mode sass-mode reverse-theme restart-emacs ranger rainbow-delimiters railscasts-theme pyvenv pytest pyenv-mode py-isort purple-haze-theme pug-mode professional-theme popwin planet-theme pip-requirements phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pcre2el paradox pacmacs orgit organic-green-theme org-projectile org-present org-pomodoro org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme neotree naquadah-theme mwim mustang-theme multi-term move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow magit-gh-pulls madhat2r-theme macrostep lush-theme lorem-ipsum livid-mode live-py-mode linum-relative link-hint light-soap-theme less-css-mode json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme info+ indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt heroku-theme hemisu-theme help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot github-search github-clone github-browse-file gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gist gh-md gandalf-theme fuzzy flyspell-correct-helm flycheck-pos-tip flx-ido flatui-theme flatland-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-commentary evil-args evil-anzu eval-sexp-fu ess-smart-equals ess-R-data-view espresso-theme eshell-z eshell-prompt-extras esh-help erc-yt erc-view-log erc-terminal-notifier erc-social-graph erc-image erc-hl-nicks emmet-mode elisp-slime-nav ein dumb-jump dracula-theme django-theme diff-hl define-word darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme cython-mode cyberpunk-theme company-web company-tern company-statistics company-anaconda column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized coffee-mode clues-theme clean-aindent-mode cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell 2048-game))))
+    (org-mime doom-themes restclient-helm ob-restclient ob-http company-restclient restclient know-your-http-well csv-mode org-noter interleave pdf-tools tablist flymd omnisharp shut-up csharp-mode org-category-capture alert log4e gntp markdown-mode json-snatcher json-reformat multiple-cursors haml-mode gitignore-mode fringe-helper git-gutter+ git-gutter gh marshal logito pcache ht flyspell-correct pos-tip flycheck magit magit-popup git-commit ghub let-alist with-editor ctable ess julia-mode skewer-mode request-deferred websocket deferred js2-mode simple-httpd autothemer web-completion-data dash-functional tern company yasnippet anaconda-mode pythonic auto-complete evil-nerd-commenter zenburn-theme zen-and-art-theme yapfify yaml-mode xterm-color ws-butler winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe uuidgen use-package unfill underwater-theme ujelly-theme typit twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit sunny-day-theme sudoku sublime-themes subatomic256-theme subatomic-theme sql-indent spaceline spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle slim-mode shell-pop seti-theme scss-mode sass-mode reverse-theme restart-emacs ranger rainbow-delimiters railscasts-theme pyvenv pytest pyenv-mode py-isort purple-haze-theme pug-mode professional-theme popwin planet-theme pip-requirements phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pcre2el paradox pacmacs orgit organic-green-theme org-projectile org-present org-pomodoro org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme neotree naquadah-theme mwim mustang-theme multi-term move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow magit-gh-pulls madhat2r-theme macrostep lush-theme lorem-ipsum livid-mode live-py-mode linum-relative link-hint light-soap-theme less-css-mode json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme info+ indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt heroku-theme hemisu-theme help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot github-search github-clone github-browse-file gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gist gh-md gandalf-theme fuzzy flyspell-correct-helm flycheck-pos-tip flx-ido flatui-theme flatland-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-commentary evil-args evil-anzu eval-sexp-fu ess-smart-equals ess-R-data-view espresso-theme eshell-z eshell-prompt-extras esh-help erc-yt erc-view-log erc-terminal-notifier erc-social-graph erc-image erc-hl-nicks emmet-mode elisp-slime-nav ein dumb-jump dracula-theme django-theme diff-hl define-word darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme cython-mode cyberpunk-theme company-web company-tern company-statistics company-anaconda column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized coffee-mode clues-theme clean-aindent-mode cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell 2048-game))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
